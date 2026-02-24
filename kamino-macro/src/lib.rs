@@ -40,7 +40,7 @@ pub fn derive_behavior_fn(input: TokenStream) -> TokenStream {
 
                 self.positions = new_positions;
             }
-            
+
             fn move_to_position(&mut self, target_pos: Vec3) {
                 let first_pos = self.positions[0];
                 let delta = target_pos - first_pos;

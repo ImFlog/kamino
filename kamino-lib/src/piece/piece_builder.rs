@@ -219,11 +219,11 @@ mod tests {
 
     #[test]
     fn test_click_piece_saves_drag_start() {
-        use bevy::ecs::system::RunSystemOnce;
-        use crate::piece::mod_tests::click_piece;
-        use crate::piece::GameState;
-        use crate::piece::rectangle::Rectangle;
         use crate::cursor::Cursor;
+        use crate::piece::mod_tests::click_piece;
+        use crate::piece::rectangle::Rectangle;
+        use crate::piece::GameState;
+        use bevy::ecs::system::RunSystemOnce;
 
         // Given
         let mut world = World::default();
@@ -257,10 +257,10 @@ mod tests {
 
     #[test]
     fn test_embed_in_board() {
-        use bevy::ecs::system::RunSystemOnce;
         use crate::piece::mod_tests::embed_in_board;
-        use crate::piece::GameState;
         use crate::piece::rectangle::Rectangle;
+        use crate::piece::GameState;
+        use bevy::ecs::system::RunSystemOnce;
 
         // Given
         let mut world = World::default();
@@ -296,7 +296,9 @@ mod tests {
         game_state.pieces[0].move_to_position(filled_coords);
         world.insert_non_send_resource(game_state);
 
-        let mut input = world.get_resource_mut::<ButtonInput<MouseButton>>().unwrap();
+        let mut input = world
+            .get_resource_mut::<ButtonInput<MouseButton>>()
+            .unwrap();
         input.press(MouseButton::Left);
         input.release(MouseButton::Left);
 
@@ -316,7 +318,9 @@ mod tests {
         game_state.pieces[0].move_to_position(empty_coords);
         world.insert_non_send_resource(game_state);
 
-        let mut input = world.get_resource_mut::<ButtonInput<MouseButton>>().unwrap();
+        let mut input = world
+            .get_resource_mut::<ButtonInput<MouseButton>>()
+            .unwrap();
         input.press(MouseButton::Left);
         input.release(MouseButton::Left);
 
@@ -329,15 +333,183 @@ mod tests {
 
         // Board position should be filled now
         let board = world.get_resource::<Board>().unwrap();
-        assert!(board.positions.iter().find(|bp| bp.coordinates().xy().distance(empty_coords.xy()) < 0.1).unwrap().is_filled());
+        assert!(board
+            .positions
+            .iter()
+            .find(|bp| bp.coordinates().xy().distance(empty_coords.xy()) < 0.1)
+            .unwrap()
+            .is_filled());
+    }
+
+    #[test]
+    fn test_board_consistency_after_reset() {
+        use crate::cursor::Cursor;
+        use crate::piece::mod_tests::{click_piece, embed_in_board};
+        use crate::piece::rectangle::Rectangle;
+        use crate::piece::GameState;
+        use bevy::ecs::system::RunSystemOnce;
+
+        // Given
+        let mut world = World::default();
+        let board = Board::new();
+        world.insert_resource(board);
+
+        // Two pieces. Piece 1 is on the board. Piece 2 is also on the board.
+        let piece1 = Rectangle::new(0, -50); // At (0,-50), (0,0), (0,50)
+        let piece2 = Rectangle::new(50, -50); // At (50,-50), (50,0), (50,50)
+
+        let game_state = GameState {
+            pieces: vec![Box::new(piece1), Box::new(piece2)],
+            drag_start: None,
+        };
+
+        // Mark board as filled for both
+        {
+            let mut board = world.get_resource_mut::<Board>().unwrap();
+            board.fill_piece(&game_state.pieces[0].positions());
+            board.fill_piece(&game_state.pieces[1].positions());
+        }
+        world.insert_non_send_resource(game_state);
+
+        let cursor = Cursor {
+            current_pos: Vec2::new(0., -50.), // Over piece 1
+            last_click_pos: Vec2::ZERO,
+            is_pressed: true,
+        };
+        world.insert_resource(cursor);
+
+        // 1. Click piece 1
+        let mut input = ButtonInput::<MouseButton>::default();
+        input.press(MouseButton::Left);
+        world.insert_resource(input);
+        let _ = world.run_system_once(click_piece);
+
+        // Verify piece 1 is moving and board is cleared for its positions
+        {
+            let gs = world.get_non_send_resource::<GameState>().unwrap();
+            assert!(gs.pieces[0].is_moving());
+            let board = world.get_resource::<Board>().unwrap();
+            // (0,-50) should be empty now
+            assert!(!board
+                .positions
+                .iter()
+                .find(|bp| bp.coordinates().xy().distance(Vec2::new(0., -50.)) < 0.1)
+                .unwrap()
+                .is_filled());
+            // (50,-50) should still be filled (by piece 2)
+            assert!(board
+                .positions
+                .iter()
+                .find(|bp| bp.coordinates().xy().distance(Vec2::new(50., -50.)) < 0.1)
+                .unwrap()
+                .is_filled());
+        }
+
+        // 2. Move piece 1 over piece 2 and release
+        {
+            let mut gs = world.remove_non_send_resource::<GameState>().unwrap();
+            gs.pieces[0].move_to_position(Vec3::new(50., -50., 1.)); // Overlaps piece 2
+            world.insert_non_send_resource(gs);
+
+            let mut input = world
+                .get_resource_mut::<ButtonInput<MouseButton>>()
+                .unwrap();
+            input.release(MouseButton::Left);
+        }
+
+        let _ = world.run_system_once(embed_in_board);
+
+        // Then: Piece 1 should be reset to (0,-50) and board at (0,-50) should be RE-FILLED
+        let gs = world.get_non_send_resource::<GameState>().unwrap();
+        assert_eq!(gs.pieces[0].positions()[0], Vec3::new(0., -50., 1.));
+
+        let board = world.get_resource::<Board>().unwrap();
+        assert!(
+            board
+                .positions
+                .iter()
+                .find(|bp| bp.coordinates().xy().distance(Vec2::new(0., -50.)) < 0.1)
+                .unwrap()
+                .is_filled(),
+            "Board at (0,-50) should be re-filled after reset"
+        );
+    }
+
+    #[test]
+    fn test_rotation_consistency_on_board() {
+        use crate::cursor::Cursor;
+        use crate::piece::mod_tests::click_piece;
+        use crate::piece::rectangle::Rectangle;
+        use crate::piece::GameState;
+        use bevy::ecs::system::RunSystemOnce;
+
+        // Given
+        let mut world = World::default();
+        let board = Board::new();
+        world.insert_resource(board);
+
+        // Piece 1 is a horizontal rectangle at (0,0) -> (0,0), (50,0), (100,0)
+        // Piece 2 is a horizontal rectangle at (0,50) -> (0,50), (50,50), (100,50)
+        // Wait, PieceBuilder::new_horizontal_rectangle(x, y, 3, 1.) would do that.
+        // Rectangle::new(x, y) actually creates a VERTICAL rectangle of 3 squares.
+        // Let's use Rectangle::new(0, -50) -> (0,-50), (0,0), (0,50)
+        // And Rectangle::new(50, -50) -> (50,-50), (50,0), (50,50)
+        let piece1 = Rectangle::new(0, -50);
+        let piece2 = Rectangle::new(50, -50);
+
+        let game_state = GameState {
+            pieces: vec![Box::new(piece1), Box::new(piece2)],
+            drag_start: None,
+        };
+
+        {
+            let mut board = world.get_resource_mut::<Board>().unwrap();
+            board.fill_piece(&game_state.pieces[0].positions());
+            board.fill_piece(&game_state.pieces[1].positions());
+        }
+        world.insert_non_send_resource(game_state);
+
+        let cursor = Cursor {
+            current_pos: Vec2::new(50., -50.), // Over piece 2
+            last_click_pos: Vec2::ZERO,
+            is_pressed: false,
+        };
+        world.insert_resource(cursor);
+
+        // When: Right click on piece 2 to rotate it.
+        // Original piece 2 (vertical): (50,-50), (50,0), (50,50)
+        // Rotate 90 deg clockwise around (50,-50):
+        // (50,-50) stays.
+        // (50,0) -> (50+50, -50) = (100, -50)
+        // (50,50) -> (50+100, -50) = (150, -50)
+        // Square at (150, -50) is OUTSIDE the board! So fits_piece should fail.
+
+        let mut input = ButtonInput::<MouseButton>::default();
+        input.press(MouseButton::Right);
+        world.insert_resource(input);
+
+        let _ = world.run_system_once(click_piece);
+
+        // Then: Piece 2 should NOT have rotated (it was undone)
+        let gs = world.get_non_send_resource::<GameState>().unwrap();
+        assert_eq!(gs.pieces[1].positions()[0], Vec3::new(50., -50., 1.));
+        assert_eq!(gs.pieces[1].positions()[1], Vec3::new(50., 0., 1.));
+
+        let board = world.get_resource::<Board>().unwrap();
+        assert!(board
+            .positions
+            .iter()
+            .find(|bp| bp.coordinates().xy().distance(Vec2::new(50., 0.)) < 0.1)
+            .unwrap()
+            .is_filled());
     }
 
     #[test]
     fn test_unsnap_from_board() {
-        use bevy::ecs::system::RunSystemOnce;
         use crate::piece::mod_tests::embed_in_board;
-        use crate::piece::GameState;
         use crate::piece::rectangle::Rectangle;
+        use crate::piece::GameState;
+        use bevy::ecs::system::RunSystemOnce;
 
         // Given
         let mut world = World::default();
@@ -370,6 +542,10 @@ mod tests {
         let game_state = world.get_non_send_resource::<GameState>().unwrap();
         let piece = &game_state.pieces[0];
         // FAIL EXPECTED: piece should stay at (1000, 1000, 1), but current logic will reset it to (0, 0, 1)
-        assert_eq!(piece.positions()[0], Vec3::new(1000., 1000., 1.), "Piece should stay outside the board");
+        assert_eq!(
+            piece.positions()[0],
+            Vec3::new(1000., 1000., 1.),
+            "Piece should stay outside the board"
+        );
     }
 }

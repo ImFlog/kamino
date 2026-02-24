@@ -121,7 +121,7 @@ pub fn click_piece(
     cursor: Res<Cursor>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut game_state: NonSendMut<GameState>,
-    board: Option<ResMut<board::Board>>,
+    mut board: Option<ResMut<board::Board>>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Left) {
         let mut selected_piece_positions = None;
@@ -131,7 +131,7 @@ pub fn click_piece(
                 piece.set_moving(true);
 
                 // Clear the board positions covered by this piece
-                if let Some(mut board) = board {
+                if let Some(ref mut board) = board {
                     board.clear_piece(&piece.positions());
                 }
                 break;
@@ -145,7 +145,35 @@ pub fn click_piece(
     if mouse_button_input.just_pressed(MouseButton::Right) {
         for piece in game_state.pieces.iter_mut() {
             if piece.is_even_odd(cursor.current_pos) {
-                piece.rotate();
+                if piece.is_moving() {
+                    piece.rotate();
+                } else if let Some(ref mut board) = board {
+                    // If the piece is on the board, we must check if rotation is valid
+                    if board.fits_piece(&piece.positions()) {
+                        board.clear_piece(&piece.positions());
+                        piece.rotate();
+                        piece.snap();
+                        if board.fits_piece(&piece.positions())
+                            && board.can_place_piece(&piece.positions())
+                        {
+                            board.fill_piece(&piece.positions());
+                        } else {
+                            // Undo rotation: 3 more clockwise rotations = 1 counter-clockwise
+                            // TODO: Improve this.
+                            piece.rotate();
+                            piece.rotate();
+                            piece.rotate();
+                            piece.snap();
+                            board.fill_piece(&piece.positions());
+                            piece.set_error_timer(0.5);
+                        }
+                    } else {
+                        piece.rotate();
+                    }
+                } else {
+                    piece.rotate();
+                }
+                break;
             }
         }
     }
@@ -166,12 +194,6 @@ fn release_piece(
         .for_each(|piece| piece.set_moving(false));
 
     game_state.drag_start = None;
-}
-
-#[cfg(test)]
-pub mod mod_tests {
-    pub use super::click_piece;
-    pub use super::embed_in_board;
 }
 
 pub fn embed_in_board(
@@ -200,6 +222,8 @@ pub fn embed_in_board(
         if !board.can_place_piece(&moving_piece.positions()) {
             if let Some(pos) = drag_start {
                 moving_piece.set_positions(pos);
+                // Re-fill the board positions if the piece was originally on the board
+                board.fill_piece(&moving_piece.positions());
             }
 
             moving_piece.set_error_timer(0.5);
@@ -208,4 +232,10 @@ pub fn embed_in_board(
             board.fill_piece(&moving_piece.positions());
         }
     }
+}
+
+#[cfg(test)]
+pub mod mod_tests {
+    pub use super::click_piece;
+    pub use super::embed_in_board;
 }

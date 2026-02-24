@@ -1,4 +1,3 @@
-- [x] Only embed a piece in the board if all the positions are empty. Else reset the piece position and briefly make the outline black.
 - [ ] When all the positions are filled, display a winning message.
 - [ ] Add a HUD with the level name and the score.
 - [ ] The score is computed based on the number of moves.

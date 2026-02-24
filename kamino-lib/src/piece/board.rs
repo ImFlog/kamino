@@ -63,7 +63,7 @@ impl Board {
 
     /// Checks if a piece (defined by its square positions) is within the board's boundaries
     pub fn fits_piece(&self, piece_positions: &[Vec3]) -> bool {
-        let tolerance = (SQUARE_WIDTH / 2) as f32;
+        let tolerance = SQUARE_WIDTH as f32 / 2.0;
         piece_positions.iter().all(|t| {
             self.min_x - tolerance <= t.x
                 && t.x <= self.max_x + tolerance
@@ -133,7 +133,10 @@ pub struct BoardPosition {
 
 impl BoardPosition {
     pub fn new(coordinates: Vec3) -> Self {
-        BoardPosition { coordinates, filled: false }
+        BoardPosition {
+            coordinates,
+            filled: false,
+        }
     }
 
     pub fn coordinates(&self) -> Vec3 {
