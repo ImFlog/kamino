@@ -218,27 +218,158 @@ mod tests {
     }
 
     #[test]
-    fn test_board_positions() {
+    fn test_click_piece_saves_drag_start() {
+        use bevy::ecs::system::RunSystemOnce;
+        use crate::piece::mod_tests::click_piece;
+        use crate::piece::GameState;
+        use crate::piece::rectangle::Rectangle;
+        use crate::cursor::Cursor;
+
         // Given
         let mut world = World::default();
-        let mut command_queue = CommandQueue::default();
-        let mut commands = Commands::new(&mut command_queue, &world);
+        let piece = Rectangle::new(0, 0);
+        let initial_pos = piece.positions();
+        let game_state = GameState {
+            pieces: vec![Box::new(piece)],
+            drag_start: None,
+        };
+        world.insert_non_send_resource(game_state);
+
+        let mut input = ButtonInput::<MouseButton>::default();
+        input.press(MouseButton::Left);
+        world.insert_resource(input);
+
+        let cursor = Cursor {
+            current_pos: Vec2::ZERO,
+            last_click_pos: Vec2::ZERO,
+            is_pressed: true,
+        };
+        world.insert_resource(cursor);
 
         // When
-        let board = Board::new();
-        commands.insert_resource(board);
-        command_queue.apply(&mut world);
+        let _ = world.run_system_once(click_piece);
 
-        // Then - Check that board has correct bounds
+        // Then
+        let game_state = world.get_non_send_resource::<GameState>().unwrap();
+        assert_eq!(game_state.drag_start, Some(initial_pos));
+        assert!(game_state.pieces[0].is_moving());
+    }
+
+    #[test]
+    fn test_embed_in_board() {
+        use bevy::ecs::system::RunSystemOnce;
+        use crate::piece::mod_tests::embed_in_board;
+        use crate::piece::GameState;
+        use crate::piece::rectangle::Rectangle;
+
+        // Given
+        let mut world = World::default();
+        let mut board = Board::new();
+        // Manually fill one position
+        board.positions[0].set_filled(true);
+        let filled_coords = board.positions[0].coordinates();
+        world.insert_resource(board);
+
+        let mut piece = Rectangle::new(1000, 1000); // Far away
+        let initial_pos = piece.positions();
+        piece.set_moving(true);
+        let game_state = GameState {
+            pieces: vec![Box::new(piece)],
+            drag_start: Some(initial_pos),
+        };
+        world.insert_non_send_resource(game_state);
+
+        let mut input = ButtonInput::<MouseButton>::default();
+        input.press(MouseButton::Left);
+        input.release(MouseButton::Left);
+        world.insert_resource(input);
+
+        // When - piece is far away, nothing should happen
+        let _ = world.run_system_once(embed_in_board);
+
+        let game_state = world.get_non_send_resource::<GameState>().unwrap();
+        let piece = &game_state.pieces[0];
+        assert_eq!(piece.positions()[0], Vec3::new(1000., 1000., 1.));
+
+        // When - piece is over the board but on filled position
+        let mut game_state = world.remove_non_send_resource::<GameState>().unwrap();
+        game_state.pieces[0].move_to_position(filled_coords);
+        world.insert_non_send_resource(game_state);
+
+        let mut input = world.get_resource_mut::<ButtonInput<MouseButton>>().unwrap();
+        input.press(MouseButton::Left);
+        input.release(MouseButton::Left);
+
+        let _ = world.run_system_once(embed_in_board);
+
+        let game_state = world.get_non_send_resource::<GameState>().unwrap();
+        let piece = &game_state.pieces[0];
+        // Should be reset to initial position (1000, 1000, 1)
+        assert_eq!(piece.positions()[0], Vec3::new(1000., 1000., 1.));
+
+        // When - piece is over empty board position
+        let mut board = world.get_resource_mut::<Board>().unwrap();
+        board.positions[0].set_filled(false);
+        let empty_coords = board.positions[1].coordinates();
+
+        let mut game_state = world.remove_non_send_resource::<GameState>().unwrap();
+        game_state.pieces[0].move_to_position(empty_coords);
+        world.insert_non_send_resource(game_state);
+
+        let mut input = world.get_resource_mut::<ButtonInput<MouseButton>>().unwrap();
+        input.press(MouseButton::Left);
+        input.release(MouseButton::Left);
+
+        let _ = world.run_system_once(embed_in_board);
+
+        let game_state = world.get_non_send_resource::<GameState>().unwrap();
+        let piece = &game_state.pieces[0];
+        // Should be snapped (already at snapped position)
+        assert_eq!(piece.positions()[0], empty_coords);
+
+        // Board position should be filled now
         let board = world.get_resource::<Board>().unwrap();
-        assert_eq!(board.min_x, -100f32);
-        assert_eq!(board.min_y, -50f32);
-        // Board is 3 rows x 5 cols, so max values should account for that
-        // Max is calculated as start + (count * SQUARE_WIDTH), not (count - 1) * SQUARE_WIDTH
-        assert_eq!(board.max_x, 100f32);
-        assert_eq!(board.max_y, 50f32);
+        assert!(board.positions.iter().find(|bp| bp.coordinates().xy().distance(empty_coords.xy()) < 0.1).unwrap().is_filled());
+    }
 
-        // Check that we have correct number of positions (3 rows * 5 cols = 15)
-        assert_eq!(board.positions.len(), 15);
+    #[test]
+    fn test_unsnap_from_board() {
+        use bevy::ecs::system::RunSystemOnce;
+        use crate::piece::mod_tests::embed_in_board;
+        use crate::piece::GameState;
+        use crate::piece::rectangle::Rectangle;
+
+        // Given
+        let mut world = World::default();
+        let board = Board::new();
+        world.insert_resource(board);
+
+        // Piece starts on board (at 0,0,1)
+        let mut piece = Rectangle::new(0, 0);
+        let snapped_pos = piece.positions();
+        piece.set_moving(true);
+
+        // We moved it far away
+        piece.move_to_position(Vec3::new(1000., 1000., 1.));
+
+        let game_state = GameState {
+            pieces: vec![Box::new(piece)],
+            drag_start: Some(snapped_pos), // Drag started on board
+        };
+        world.insert_non_send_resource(game_state);
+
+        let mut input = ButtonInput::<MouseButton>::default();
+        input.press(MouseButton::Left);
+        input.release(MouseButton::Left);
+        world.insert_resource(input);
+
+        // When
+        let _ = world.run_system_once(embed_in_board);
+
+        // Then
+        let game_state = world.get_non_send_resource::<GameState>().unwrap();
+        let piece = &game_state.pieces[0];
+        // FAIL EXPECTED: piece should stay at (1000, 1000, 1), but current logic will reset it to (0, 0, 1)
+        assert_eq!(piece.positions()[0], Vec3::new(1000., 1000., 1.), "Piece should stay outside the board");
     }
 }

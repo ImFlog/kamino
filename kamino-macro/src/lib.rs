@@ -40,8 +40,18 @@ pub fn derive_behavior_fn(input: TokenStream) -> TokenStream {
 
                 self.positions = new_positions;
             }
+            
+            fn move_to_position(&mut self, target_pos: Vec3) {
+                let first_pos = self.positions[0];
+                let delta = target_pos - first_pos;
+                for pos in self.positions.iter_mut() {
+                    pos.x += delta.x;
+                    pos.y += delta.y;
+                    pos.z = target_pos.z;
+                }
+            }
 
-            fn move_it(&mut self, cursor: &Res<crate::cursor::Cursor>) {
+            fn move_to_cursor(&mut self, cursor: &Res<crate::cursor::Cursor>) {
                 let first_pos = self.positions.first_mut().unwrap();
 
                 let delta_x = -first_pos.x + cursor.current_pos.x;
@@ -70,6 +80,10 @@ pub fn derive_behavior_fn(input: TokenStream) -> TokenStream {
 
             fn is_moving(&self) -> bool {
                 self.moving
+            }
+
+            fn set_positions(&mut self, positions: Vec<Vec3>) {
+                self.positions = positions;
             }
         }
     };

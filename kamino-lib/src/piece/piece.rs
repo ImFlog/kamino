@@ -22,11 +22,18 @@ pub trait Piece {
     /// Snaps the piece positions to align with the board grid
     fn snap(&mut self);
 
+    /// Moves the piece to the specified position
+    #[allow(dead_code)]
+    fn move_to_position(&mut self, pos: Vec3);
+
     /// Moves the piece to follow the cursor position
-    fn move_it(&mut self, cursor: &Res<Cursor>);
+    fn move_to_cursor(&mut self, cursor: &Res<Cursor>);
 
     /// Sets whether this piece is currently being moved by the player
     fn set_moving(&mut self, moving: bool);
+
+    /// Sets the current positions of all squares that make up this piece
+    fn set_positions(&mut self, positions: Vec<Vec3>);
 
     /// Returns true if this piece is currently being moved by the player
     fn is_moving(&self) -> bool;

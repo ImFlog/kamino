@@ -3,8 +3,6 @@ use bevy::sprite::Sprite;
 
 use crate::piece::SQUARE_WIDTH;
 
-use super::piece_builder::PieceBuilder;
-
 /// Plugin that creates and renders the game board
 pub struct BoardPlugin;
 
@@ -14,10 +12,6 @@ impl Plugin for BoardPlugin {
             .add_systems(Startup, draw_board);
     }
 }
-
-/// Marker component for entities that are part of the board
-#[derive(Component)]
-struct BoardPosition;
 
 /// Represents the game board where pieces can be placed.
 /// Currently a fixed 3x5 grid:
@@ -29,7 +23,7 @@ struct BoardPosition;
 #[derive(Resource)]
 pub struct Board {
     /// Positions of all squares that make up the board
-    pub positions: Vec<Vec3>,
+    pub positions: Vec<BoardPosition>,
     /// Minimum X coordinate of the board (left edge)
     pub min_x: f32,
     /// Minimum Y coordinate of the board (bottom edge)
@@ -38,7 +32,6 @@ pub struct Board {
     pub max_x: f32,
     /// Maximum Y coordinate of the board (top edge)
     pub max_y: f32,
-    // TODO: Track which positions are filled - vec[bool[]] ?
 }
 
 impl Board {
@@ -52,13 +45,12 @@ impl Board {
         let start_x = -(nb_cols / 2) * SQUARE_WIDTH;
         let start_y = -(nb_rows / 2) * SQUARE_WIDTH;
 
-        for i in 0..nb_rows {
-            positions.append(&mut PieceBuilder::new_horizontal_rectangle(
-                start_x,
-                start_y + (i * SQUARE_WIDTH),
-                nb_cols,
-                0.,
-            ));
+        for r in 0..nb_rows {
+            for c in 0..nb_cols {
+                let x = (start_x + c * SQUARE_WIDTH) as f32;
+                let y = (start_y + r * SQUARE_WIDTH) as f32;
+                positions.push(BoardPosition::new(Vec3::new(x, y, 0.)));
+            }
         }
         Board {
             positions,
@@ -66,6 +58,52 @@ impl Board {
             min_y: (start_y) as f32,
             max_x: (start_x + (nb_cols - 1) * SQUARE_WIDTH) as f32,
             max_y: (start_y + (nb_rows - 1) * SQUARE_WIDTH) as f32,
+        }
+    }
+
+    /// Checks if a piece (defined by its square positions) is within the board's boundaries
+    pub fn fits_piece(&self, piece_positions: &[Vec3]) -> bool {
+        let tolerance = (SQUARE_WIDTH / 2) as f32;
+        piece_positions.iter().all(|t| {
+            self.min_x - tolerance <= t.x
+                && t.x <= self.max_x + tolerance
+                && self.min_y - tolerance <= t.y
+                && t.y <= self.max_y + tolerance
+        })
+    }
+
+    /// Checks if all positions occupied by a piece are available (not already filled)
+    pub fn can_place_piece(&self, piece_positions: &[Vec3]) -> bool {
+        !piece_positions.iter().any(|t| {
+            self.positions
+                .iter()
+                .any(|bp| bp.is_filled() && bp.coordinates().xy().distance(t.xy()) < 0.1)
+        })
+    }
+
+    /// Marks board positions as filled based on the piece's square positions
+    pub fn fill_piece(&mut self, piece_positions: &[Vec3]) {
+        for position in piece_positions {
+            if let Some(bp) = self
+                .positions
+                .iter_mut()
+                .find(|bp| bp.coordinates().xy().distance(position.xy()) < 0.1)
+            {
+                bp.set_filled(true);
+            }
+        }
+    }
+
+    /// Marks board positions as empty based on the piece's square positions
+    pub fn clear_piece(&mut self, piece_positions: &[Vec3]) {
+        for position in piece_positions {
+            if let Some(bp) = self
+                .positions
+                .iter_mut()
+                .find(|bp| bp.coordinates().xy().distance(position.xy()) < 0.1)
+            {
+                bp.set_filled(false);
+            }
         }
     }
 }
@@ -83,8 +121,30 @@ fn draw_board(board: Res<Board>, mut commands: Commands) {
                 )),
                 ..default()
             },
-            Transform::from_translation(*position),
-            BoardPosition,
+            Transform::from_translation(position.coordinates),
         ));
     });
+}
+
+pub struct BoardPosition {
+    pub coordinates: Vec3,
+    pub filled: bool,
+}
+
+impl BoardPosition {
+    pub fn new(coordinates: Vec3) -> Self {
+        BoardPosition { coordinates, filled: false }
+    }
+
+    pub fn coordinates(&self) -> Vec3 {
+        self.coordinates
+    }
+
+    pub fn is_filled(&self) -> bool {
+        self.filled
+    }
+
+    pub fn set_filled(&mut self, filled: bool) {
+        self.filled = filled;
+    }
 }

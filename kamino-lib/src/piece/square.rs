@@ -11,8 +11,9 @@ pub struct Square {
 
 impl Square {
     pub fn new(start_x: i32, start_y: i32) -> Self {
+        let positions = vec![vec3(start_x as f32, start_y as f32, 1.)];
         Square {
-            positions: vec![vec3(start_x as f32, start_y as f32, 1.)],
+            positions,
             color: Color::srgb(0.01, 1.0, 0.425_367_7),
             moving: false,
         }
