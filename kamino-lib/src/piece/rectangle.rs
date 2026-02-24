@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use t_triste_macro::PieceBehavior;
+use kamino_macro::PieceBehavior;
 
 use crate::piece::{piece_builder::PieceBuilder, SQUARE_WIDTH};
 

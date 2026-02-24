@@ -1,4 +1,4 @@
-# Rust formatting configuration for t-triste
+# Rust formatting configuration for kamino
 edition = "2018"
 max_width = 100
 use_small_heuristics = "Default"

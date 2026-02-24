@@ -29,7 +29,7 @@ fn cursor_state(
     mut cursor_moved_event: MessageReader<CursorMoved>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut cursor: ResMut<Cursor>,
-    q_camera: Query<(&Camera, &GlobalTransform)>
+    q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     let Ok((camera, camera_transform)) = q_camera.single() else {
         return;

@@ -9,7 +9,7 @@ mod rectangle;
 mod square;
 mod z;
 
-extern crate t_triste_macro;
+extern crate kamino_macro;
 
 use bevy::{math::vec3, prelude::*, sprite::Sprite};
 
@@ -38,13 +38,16 @@ impl Plugin for PiecePlugin {
             Box::new(Square::new(100, -200)),
         ]))
         .add_systems(PreUpdate, clear)
-        .add_systems(Update, (
-            click_piece,
-            move_piece,
-            embed_in_board.before(release_piece),
-            release_piece,
-            draw_piece
-        ));
+        .add_systems(
+            Update,
+            (
+                click_piece,
+                move_piece,
+                embed_in_board.before(release_piece),
+                release_piece,
+                draw_piece,
+            ),
+        );
     }
 }
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-T-triste is a competitive puzzle game built with the Bevy game engine. The project is structured as a Rust workspace
+kamino is a competitive puzzle game built with the Bevy game engine. The project is structured as a Rust workspace
 with three crates.
 
 ## Tech Stack
@@ -15,10 +15,10 @@ with three crates.
 ## Workspace Structure
 
 ```
-t-triste/
-├── t-triste/           # Main game binary
-├── t-triste-lib/       # Core game library
-├── t-triste-macro/     # Procedural macros
+kamino/
+├── kamino/           # Main game binary
+├── kamino-lib/       # Core game library
+├── kamino-macro/     # Procedural macros
 ├── rustfmt.toml        # Code formatting configuration
 ├── .clippy.toml        # Linting configuration
 └── rust-toolchain.toml # Rust toolchain specification
@@ -39,7 +39,7 @@ To make them work together, we must convert the window-space mouse position into
 
 #### Cursor Position Conversion
 
-The `cursor_state` system in `t-triste-lib/src/cursor.rs` handles the conversion from window coordinates to world
+The `cursor_state` system in `kamino-lib/src/cursor.rs` handles the conversion from window coordinates to world
 coordinates using the `camera.viewport_to_world_2d` method. This ensures that when you click or move the mouse, the
 `Cursor` resource contains the correct world position, allowing it to interact accurately with game objects like pieces
 and the board.
@@ -129,7 +129,7 @@ cargo clippy --all-targets --all-features --fix
 cargo test --all-features
 
 # Run tests for a specific crate
-cargo test -p t-triste-lib --all-features
+cargo test -p kamino-lib --all-features
 
 # Run a specific test
 cargo test test_name --all-features

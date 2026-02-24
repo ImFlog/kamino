@@ -1,5 +1,5 @@
-extern crate t_triste_lib;
-use t_triste_lib::*;
+extern crate kamino_lib;
+use kamino_lib::*;
 
 use bevy::prelude::*;
 

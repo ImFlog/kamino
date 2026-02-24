@@ -13,7 +13,7 @@ impl Plugin for GamePlugin {
         app.insert_resource(ClearColor(Color::srgb(1., 0.90, 1.)))
             .add_plugins(DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "T-Triste".to_string(),
+                    title: "kamino".to_string(),
                     resolution: (800, 600).into(),
                     present_mode: bevy::window::PresentMode::AutoVsync,
                     ..default()

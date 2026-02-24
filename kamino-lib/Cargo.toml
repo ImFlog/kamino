@@ -1,5 +1,5 @@
 [package]
-name = "t-triste-lib"
+name = "kamino-lib"
 version = "0.1.0"
 authors = [
     "ImFlog <garcia.florian.perso@gmail.com>",
@@ -8,7 +8,7 @@ authors = [
 edition = "2021"
 
 [dependencies]
-t-triste-macro = { version = "*", path = "../t-triste-macro" }
+kamino-macro = { version = "*", path = "../kamino-macro" }
 
 [dependencies.bevy]
 version = "0.17"

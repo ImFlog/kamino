@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    't-triste',
-    't-triste-lib',
-    't-triste-macro'
+    'kamino',
+    'kamino-lib',
+    'kamino-macro'
 ]
