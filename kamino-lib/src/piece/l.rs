@@ -10,6 +10,7 @@ pub struct L {
     positions: Vec<Vec3>,
     color: Color,
     moving: bool,
+    error_timer: f32,
 }
 
 impl L {
@@ -36,6 +37,7 @@ impl L {
             positions,
             color: Color::srgb(1.56, 0.12, 0.03),
             moving: false,
+            error_timer: 0.0,
         }
     }
 }

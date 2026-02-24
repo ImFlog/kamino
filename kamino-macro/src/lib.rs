@@ -85,6 +85,18 @@ pub fn derive_behavior_fn(input: TokenStream) -> TokenStream {
             fn set_positions(&mut self, positions: Vec<Vec3>) {
                 self.positions = positions;
             }
+
+            fn error_timer(&self) -> f32 {
+                self.error_timer
+            }
+
+            fn set_error_timer(&mut self, duration: f32) {
+                self.error_timer = duration;
+            }
+
+            fn update_error_timer(&mut self, delta: f32) {
+                self.error_timer = (self.error_timer - delta).max(0.0);
+            }
         }
     };
     TokenStream::from(expanded)

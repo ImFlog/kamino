@@ -35,6 +35,15 @@ pub trait Piece {
     /// Sets the current positions of all squares that make up this piece
     fn set_positions(&mut self, positions: Vec<Vec3>);
 
+    /// Returns the remaining duration of the error state (outline)
+    fn error_timer(&self) -> f32;
+
+    /// Sets the error timer
+    fn set_error_timer(&mut self, duration: f32);
+
+    /// Updates the error timer
+    fn update_error_timer(&mut self, delta: f32);
+
     /// Returns true if this piece is currently being moved by the player
     fn is_moving(&self) -> bool;
 

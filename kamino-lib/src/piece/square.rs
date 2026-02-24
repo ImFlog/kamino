@@ -7,6 +7,7 @@ pub struct Square {
     positions: Vec<Vec3>,
     color: Color,
     moving: bool,
+    error_timer: f32,
 }
 
 impl Square {
@@ -16,6 +17,7 @@ impl Square {
             positions,
             color: Color::srgb(0.01, 1.0, 0.425_367_7),
             moving: false,
+            error_timer: 0.0,
         }
     }
 }

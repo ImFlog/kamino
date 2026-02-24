@@ -10,6 +10,7 @@ pub struct Z {
     positions: Vec<Vec3>,
     color: Color,
     moving: bool,
+    error_timer: f32,
 }
 
 impl Z {
@@ -29,6 +30,7 @@ impl Z {
             positions,
             color: Color::srgb(0.46, 0.98, 1.13),
             moving: false,
+            error_timer: 0.0,
         }
     }
 }

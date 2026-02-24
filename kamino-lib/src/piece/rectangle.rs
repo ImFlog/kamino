@@ -8,6 +8,7 @@ pub struct Rectangle {
     positions: Vec<Vec3>,
     color: Color,
     moving: bool,
+    error_timer: f32,
 }
 
 impl Rectangle {
@@ -26,6 +27,7 @@ impl Rectangle {
             positions,
             color: Color::srgb(0.68, 0.1, 1.03),
             moving: false,
+            error_timer: 0.0,
         }
     }
 }

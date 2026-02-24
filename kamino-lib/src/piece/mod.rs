@@ -48,6 +48,7 @@ impl Plugin for PiecePlugin {
             (
                 click_piece,
                 move_piece,
+                update_timers,
                 embed_in_board.before(release_piece),
                 release_piece,
                 draw_piece,
@@ -67,7 +68,20 @@ fn draw_piece(mut commands: Commands, mut game_state: NonSendMut<GameState>) {
     for piece in game_state.pieces.iter_mut() {
         let color = piece.color();
         let positions = piece.positions();
+        let is_error = piece.error_timer() > 0.0;
         for position in positions.iter() {
+            if is_error {
+                // Spawn a slightly larger black square as an outline
+                commands.spawn((
+                    Sprite {
+                        color: Color::BLACK,
+                        custom_size: Some(Vec2::new(SQUARE_WIDTH as f32, SQUARE_WIDTH as f32)),
+                        ..default()
+                    },
+                    Transform::from_translation(vec3(position.x, position.y, position.z - 0.1)),
+                    Position,
+                ));
+            }
             commands.spawn((
                 Sprite {
                     color,
@@ -81,6 +95,13 @@ fn draw_piece(mut commands: Commands, mut game_state: NonSendMut<GameState>) {
                 Position,
             ));
         }
+    }
+}
+
+fn update_timers(time: Res<Time>, mut game_state: NonSendMut<GameState>) {
+    let delta = time.delta_secs();
+    for piece in game_state.pieces.iter_mut() {
+        piece.update_error_timer(delta);
     }
 }
 
@@ -181,7 +202,7 @@ pub fn embed_in_board(
                 moving_piece.set_positions(pos);
             }
 
-            // TODO: Briefly make the outline red.
+            moving_piece.set_error_timer(0.5);
         } else {
             // Fill positions on the board
             board.fill_piece(&moving_piece.positions());

@@ -10,6 +10,7 @@ pub struct Corner {
     positions: Vec<Vec3>,
     color: Color,
     moving: bool,
+    error_timer: f32,
 }
 
 impl Corner {
@@ -29,6 +30,7 @@ impl Corner {
             positions,
             color: Color::srgb(0.83, 1.02, 0.18),
             moving: false,
+            error_timer: 0.0,
         }
     }
 }
