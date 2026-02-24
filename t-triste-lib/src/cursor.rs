@@ -29,13 +29,20 @@ fn cursor_state(
     mut cursor_moved_event: MessageReader<CursorMoved>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut cursor: ResMut<Cursor>,
+    q_camera: Query<(&Camera, &GlobalTransform)>
 ) {
-    for event in cursor_moved_event.read() {
-        cursor.current_pos = event.position;
+    let Ok((camera, camera_transform)) = q_camera.single() else {
+        return;
+    };
 
-        if mouse_button_input.just_pressed(MouseButton::Left) {
-            cursor.last_click_pos = event.position;
-            cursor.is_pressed = true;
+    for event in cursor_moved_event.read() {
+        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, event.position) {
+            cursor.current_pos = world_pos;
+
+            if mouse_button_input.just_pressed(MouseButton::Left) {
+                cursor.last_click_pos = world_pos;
+                cursor.is_pressed = true;
+            }
         }
 
         if mouse_button_input.just_released(MouseButton::Left) {

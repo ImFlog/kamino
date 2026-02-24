@@ -31,14 +31,20 @@ pub struct GameState(pub Vec<Box<dyn Piece>>);
 impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
         app.insert_non_send_resource(GameState(vec![
-            Box::new(Rectangle::new(100, 100)),
-            Box::new(L::new(200, 300)),
-            Box::new(Z::new(400, 500)),
-            Box::new(Corner::new(100, 300)),
-            Box::new(Square::new(300, 100)),
+            Box::new(Rectangle::new(-300, -200)),
+            Box::new(L::new(-100, 100)),
+            Box::new(Z::new(200, 200)),
+            Box::new(Corner::new(-300, 100)),
+            Box::new(Square::new(100, -200)),
         ]))
         .add_systems(PreUpdate, clear)
-        .add_systems(Update, (release_piece, click_piece, move_piece, draw_piece));
+        .add_systems(Update, (
+            click_piece,
+            move_piece,
+            embed_in_board.before(release_piece),
+            release_piece,
+            draw_piece
+        ));
     }
 }
 
@@ -117,4 +123,34 @@ fn release_piece(
         .iter_mut()
         .filter(|piece| piece.is_moving())
         .for_each(|piece| piece.set_moving(false));
+}
+
+fn embed_in_board(
+    mut game_state: NonSendMut<GameState>,
+    board: Option<Res<board::Board>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+) {
+    if !mouse_button_input.just_released(MouseButton::Left) || board.is_none() {
+        return;
+    }
+
+    let board = board.unwrap();
+
+    let moving_piece_optional = game_state.0.iter_mut().find(|piece| piece.is_moving());
+    if moving_piece_optional.is_none() {
+        return;
+    }
+    let moving_piece = moving_piece_optional.unwrap();
+
+    let tolerance = (SQUARE_WIDTH / 2) as f32;
+    let in_board = moving_piece.positions().iter().all(|t| {
+        board.min_x - tolerance <= t.x
+            && t.x <= board.max_x + tolerance
+            && board.min_y - tolerance <= t.y
+            && t.y <= board.max_y + tolerance
+    });
+
+    if in_board {
+        moving_piece.snap();
+    }
 }

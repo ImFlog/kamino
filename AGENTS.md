@@ -1,8 +1,9 @@
-# Claude.md - T-triste Project Guide
+# Claude.md - Kamino Project Guide
 
 ## Project Overview
 
-T-triste is a competitive puzzle game built with the Bevy game engine. The project is structured as a Rust workspace with three crates.
+T-triste is a competitive puzzle game built with the Bevy game engine. The project is structured as a Rust workspace
+with three crates.
 
 ## Tech Stack
 
@@ -23,6 +24,38 @@ t-triste/
 └── rust-toolchain.toml # Rust toolchain specification
 ```
 
+## Architecture
+
+### Camera and Coordinate Systems
+
+In this Bevy project, we use two main coordinate systems:
+
+1. **World Coordinates:** These are used by `Transform` for all game objects (pieces, board). By default, **(0,0) is at
+   the center of the screen**. X increases to the right, and Y increases upwards.
+2. **Window/Viewport Coordinates:** These are used by mouse and window events. (0,0) is at the bottom-left of the
+   window, with coordinates measured in pixels.
+
+To make them work together, we must convert the window-space mouse position into world-space.
+
+#### Cursor Position Conversion
+
+The `cursor_state` system in `t-triste-lib/src/cursor.rs` handles the conversion from window coordinates to world
+coordinates using the `camera.viewport_to_world_2d` method. This ensures that when you click or move the mouse, the
+`Cursor` resource contains the correct world position, allowing it to interact accurately with game objects like pieces
+and the board.
+
+```rust
+if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, event.position) {
+cursor.current_pos = world_pos;
+}
+```
+
+#### Board and Piece Spawning
+
+The game board is centered at (0,0) in world coordinates. Consequently, pieces are spawned at specific world
+coordinates (e.g., negative values for the left/bottom parts of the screen) to be visible and correctly positioned
+relative to the centered board.
+
 ## Development Setup
 
 ### Prerequisites
@@ -35,9 +68,6 @@ t-triste/
 ```bash
 # Standard run
 cargo run
-
-# Run with dynamic linking (faster compilation during development)
-cargo run --features bevy/dynamic
 ```
 
 ### Building
@@ -55,15 +85,18 @@ cargo build --release --all-features
 ### Formatting
 
 The project uses `rustfmt` with the following configuration:
+
 - **Max line width**: 100 characters
 - **Edition**: 2018
 
 **Before committing, always run:**
+
 ```bash
 cargo fmt --all
 ```
 
 **To check formatting without modifying files:**
+
 ```bash
 cargo fmt --all -- --check
 ```
@@ -71,15 +104,18 @@ cargo fmt --all -- --check
 ### Linting
 
 The project uses Clippy with strict settings:
+
 - All warnings are treated as errors (`-D warnings`)
 - Configuration in `.clippy.toml`
 
 **Before committing, always run:**
+
 ```bash
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
 **Fix auto-fixable issues:**
+
 ```bash
 cargo clippy --all-targets --all-features --fix
 ```
@@ -110,6 +146,7 @@ cargo test test_name --all-features
 ### Pull Request Checks
 
 Every PR runs the following checks:
+
 1. **Formatting**: `cargo fmt --all -- --check`
 2. **Linting**: `cargo clippy --all-targets --all-features -- -D warnings`
 3. **Tests**: `cargo test --all-features`
@@ -117,6 +154,7 @@ Every PR runs the following checks:
 ### Main Branch Pipeline
 
 On merge to main/master, additional steps run:
+
 1. All PR checks (formatting, linting, tests)
 2. **Release Build**: `cargo build --release --all-features`
 
@@ -136,6 +174,7 @@ Before committing code, ensure:
 4. Code builds: `cargo build --all-features`
 
 **Quick check command:**
+
 ```bash
 cargo fmt --all && cargo clippy --all-targets --all-features -- -D warnings && cargo test --all-features
 ```
@@ -147,6 +186,7 @@ cargo fmt --all && cargo clippy --all-targets --all-features -- -D warnings && c
 This repository follows the [Conventional Commits](https://www.conventionalcommits.org/) format for all commit messages.
 
 **Format:**
+
 ```
 <type>(<optional scope>): <description>
 
@@ -156,6 +196,7 @@ This repository follows the [Conventional Commits](https://www.conventionalcommi
 ```
 
 **Common types:**
+
 - `feat`: A new feature
 - `fix`: A bug fix
 - `docs`: Documentation only changes
@@ -168,6 +209,7 @@ This repository follows the [Conventional Commits](https://www.conventionalcommi
 - `chore`: Other changes that don't modify src or test files
 
 **Examples:**
+
 ```
 feat: add new piece rotation system
 fix: correct collision detection in grid
@@ -177,6 +219,7 @@ refactor: simplify cursor movement logic
 ```
 
 **Best practices:**
+
 - Use lowercase for the type and description
 - Keep the subject line (first line) under 72 characters
 - Use the imperative mood ("add" not "added" or "adds")
@@ -210,6 +253,7 @@ cargo clean
 ### Dynamic Linking (Faster Iteration)
 
 For faster compile times during development:
+
 ```bash
 cargo run --features bevy/dynamic
 ```
@@ -217,6 +261,8 @@ cargo run --features bevy/dynamic
 ### Bevy Features
 
 The project uses minimal Bevy features to reduce compile times:
+
+- `bevy_ui_render`
 - `bevy_render`
 - `bevy_sprite`
 - `bevy_winit`
@@ -225,13 +271,3 @@ The project uses minimal Bevy features to reduce compile times:
 - `bevy_scene`
 - `bevy_core_pipeline`
 - `png`
-
-## Authors
-
-- ImFlog <garcia.florian.perso@gmail.com>
-- NugetChar <nugetchar@gmail.com>
-
-## Additional Resources
-
-- Stream notes available in `readmes/` directory (stream_1.md through stream_14.md)
-- Project README: `README.md`

@@ -10,7 +10,7 @@ pub struct BoardPlugin;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Board::new(300, 250))
+        app.insert_resource(Board::new())
             .add_systems(Startup, draw_board);
     }
 }
@@ -42,10 +42,16 @@ pub struct Board {
 }
 
 impl Board {
-    fn new(start_x: i32, start_y: i32) -> Self {
+    pub fn new() -> Self {
         let nb_rows = 3;
         let nb_cols = 5;
         let mut positions = vec![];
+
+        // Center the board by adjusting start_x and start_y
+        // We ensure start_x and start_y are aligned with SQUARE_WIDTH
+        let start_x = -(nb_cols / 2) * SQUARE_WIDTH;
+        let start_y = -(nb_rows / 2) * SQUARE_WIDTH;
+
         for i in 0..nb_rows {
             positions.append(&mut PieceBuilder::new_horizontal_rectangle(
                 start_x,
@@ -56,16 +62,11 @@ impl Board {
         }
         Board {
             positions,
-            min_x: start_x as f32,
-            min_y: start_y as f32,
-            max_x: (start_x + (nb_cols * SQUARE_WIDTH)) as f32,
-            max_y: (start_y + (nb_rows * SQUARE_WIDTH)) as f32,
+            min_x: (start_x) as f32,
+            min_y: (start_y) as f32,
+            max_x: (start_x + (nb_cols - 1) * SQUARE_WIDTH) as f32,
+            max_y: (start_y + (nb_rows - 1) * SQUARE_WIDTH) as f32,
         }
-    }
-
-    #[cfg(test)]
-    pub fn new_for_tests(start_x: i32, start_y: i32) -> Self {
-        Self::new(start_x, start_y)
     }
 }
 

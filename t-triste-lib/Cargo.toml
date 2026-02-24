@@ -14,6 +14,7 @@ t-triste-macro = { version = "*", path = "../t-triste-macro" }
 version = "0.17"
 default-features = false
 features = [
+    "bevy_ui_render",
     "bevy_render",
     "bevy_sprite",
     "bevy_winit",

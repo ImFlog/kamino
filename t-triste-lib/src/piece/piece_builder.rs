@@ -224,22 +224,19 @@ mod tests {
         let mut command_queue = CommandQueue::default();
         let mut commands = Commands::new(&mut command_queue, &world);
 
-        let start_x = 100;
-        let start_y = 50;
-
         // When
-        let board = Board::new_for_tests(start_x, start_y);
+        let board = Board::new();
         commands.insert_resource(board);
         command_queue.apply(&mut world);
 
         // Then - Check that board has correct bounds
         let board = world.get_resource::<Board>().unwrap();
-        assert_eq!(board.min_x, start_x as f32);
-        assert_eq!(board.min_y, start_y as f32);
+        assert_eq!(board.min_x, -100f32);
+        assert_eq!(board.min_y, -50f32);
         // Board is 3 rows x 5 cols, so max values should account for that
         // Max is calculated as start + (count * SQUARE_WIDTH), not (count - 1) * SQUARE_WIDTH
-        assert_eq!(board.max_x, (start_x + 5 * SQUARE_WIDTH) as f32);
-        assert_eq!(board.max_y, (start_y + 3 * SQUARE_WIDTH) as f32);
+        assert_eq!(board.max_x, 100f32);
+        assert_eq!(board.max_y, 50f32);
 
         // Check that we have correct number of positions (3 rows * 5 cols = 15)
         assert_eq!(board.positions.len(), 15);
